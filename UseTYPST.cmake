@@ -1,24 +1,60 @@
-option(USETYPST_DEFAULT_ALL_TARGET OFF)
-function(add_typst_document DOC_NAME ROOT_TYP_DOCUMENT)
+find_program(TYPST_EXECUTABLE typst)
 
-  if(${USETYPST_DEFAULT_ALL_TARGET})
+if(TYPST_EXECUTABLE-NOTFOUND)
+  message(FATAL_ERROR "Could not find typst executable")
+endif()
 
-    add_custom_target(${DOC_NAME} ALL SOURCES ${DOC_NAME}.pdf)
-  else()
+option(ADD_TYPST_DOCUMENT_TO_ALL_TARGET "Should the typst documents be include in the ALL target" OFF)
 
-    add_custom_target(${DOC_NAME} SOURCES ${DOC_NAME}.pdf)
+function(ADD_TYPST_DOCUMENT)
+  cmake_parse_arguments(
+    TYPST_TARGET
+    ""
+    "DOCUMENT;ROOT_FILE;OUTPUT_FORMAT"
+    "KEY_VALUE_PAIRS;DEPENDS"
+    ${ARGN}
+  )
+
+  if (NOT DEFINED TYPST_TARGET_DOCUMENT OR NOT DEFINED TYPST_TARGET_ROOT_FILE)
+    message(SEND_ERROR "ADD_TYPST_DOCUMENT requires DOCUMENT and ROOT_FILE")
+    return()
   endif()
 
-  if(ARGC EQUAL 2)
-    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${ROOT_TYP_DOCUMENT})
-      add_custom_command(
-        OUTPUT ${DOC_NAME}.pdf
-        COMMAND typst compile ${CMAKE_CURRENT_SOURCE_DIR}/${ROOT_TYP_DOCUMENT} ${CMAKE_CURRENT_BINARY_DIR}/${DOC_NAME}.pdf --make-deps ${CMAKE_CURRENT_BINARY_DIR}/${DOC_NAME}.d
-        DEPFILE ${CMAKE_CURRENT_BINARY_DIR}/${DOC_NAME}.d)
-    else()
-      message(SEND_ERROR "Can not find root document file ${ROOT_TYP_DOCUMENT}")
-    endif()
-  else()
-    message(SEND_ERROR "typst_document must have only a root *.typ file.")
+  if (NOT DEFINED TYPST_TARGET_OUTPUT_FORMAT)
+    set(TYPST_TARGET_OUTPUT_FORMAT "pdf")
   endif()
+
+  string(TOLOWER ${TYPST_TARGET_OUTPUT_FORMAT} TYPST_TARGET_OUTPUT_FORMAT)
+
+  if (NOT (${TYPST_TARGET_OUTPUT_FORMAT} STREQUAL html OR ${TYPST_TARGET_OUTPUT_FORMAT} STREQUAL pdf OR ${TYPST_TARGET_OUTPUT_FORMAT} STREQUAL png OR ${TYPST_TARGET_OUTPUT_FORMAT} STREQUAL svg))
+    message(SEND_ERROR "ADD_TYPST_DOCUMENT only supports output formats: html, pdf, png, svg")
+    return()
+  endif()
+
+  if (DEFINED TYPST_TARGET_KEY_VALUE_PAIRS)
+    list(TRANSFORM TYPST_TARGET_KEY_VALUE_PAIRS PREPEND "--input=")
+  endif()
+
+  if (${ADD_TYPST_DOCUMENT_TO_ALL_TARGET})
+    add_custom_target(${TYPST_TARGET_DOCUMENT} ALL DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/${TYPST_TARGET_DOCUMENT}.${TYPST_TARGET_OUTPUT_FORMAT}" ${TYPST_TARGET_DEPENDS})
+  else()
+    add_custom_target(${TYPST_TARGET_DOCUMENT} DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/${TYPST_TARGET_DOCUMENT}.${TYPST_TARGET_OUTPUT_FORMAT}" ${TYPST_TARGET_DEPENDS})
+  endif()
+
+  if (NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${TYPST_TARGET_ROOT_FILE}")
+    message(SEND_ERROR "Can not find root document file ${TYPST_TARGET_ROOT_FILE}")
+    return()
+  endif()
+
+  cmake_path(SET TYPST_TARGET_ROOT_OUTPUT_DIR "${CMAKE_BINARY_DIR}")
+  cmake_path(RELATIVE_PATH TYPST_TARGET_ROOT_OUTPUT_DIR BASE_DIRECTORY "${CMAKE_SOURCE_DIR}")
+  # prepend '/' to relative path so typst evaluates them relative to root
+  string(PREPEND TYPST_TARGET_ROOT_OUTPUT_DIR "/")
+
+  add_custom_command(
+    OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${TYPST_TARGET_DOCUMENT}.${TYPST_TARGET_OUTPUT_FORMAT}"
+    COMMAND ${TYPST_EXECUTABLE} compile --input root_output_dir="${TYPST_TARGET_ROOT_OUTPUT_DIR}" ${TYPST_TARGET_KEY_VALUE_PAIRS} --format ${TYPST_TARGET_OUTPUT_FORMAT} --make-deps "${CMAKE_CURRENT_BINARY_DIR}/${TYPST_TARGET_DOCUMENT}.d" --root "${CMAKE_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/${TYPST_TARGET_ROOT_FILE}" "${CMAKE_CURRENT_BINARY_DIR}/${TYPST_TARGET_DOCUMENT}.${TYPST_TARGET_OUTPUT_FORMAT}"
+    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/${TYPST_TARGET_ROOT_FILE}"
+    DEPFILE "${CMAKE_CURRENT_BINARY_DIR}/${TYPST_TARGET_DOCUMENT}.d"
+  )
 endfunction()

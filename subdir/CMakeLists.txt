@@ -1,1 +1,1 @@
-add_typst_document(subdir_example subdir_example.typ)
+add_typst_document(DOCUMENT subdir_example ROOT_FILE subdir_example.typ)
