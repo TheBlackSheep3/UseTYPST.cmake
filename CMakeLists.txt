@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.20...4.1)
 project(UseTYPST)
 include(UseTYPST.cmake)
-add_typst_document(DOCUMENT example ROOT_FILE example.typ)
+add_typst_document(DOCUMENT diagram ROOT_FILE diagram.typ OUTPUT_FORMAT svg)
+add_typst_document(DOCUMENT example ROOT_FILE example.typ DEPENDS diagram)
 add_subdirectory(subdir)
 add_subdirectory(SampleProject)
