@@ -29,7 +29,8 @@ A 'Sample Project' is [here](https://github.com/TheBlackSheep3/UseTYPST.cmake/tr
 ```cmake
 cmake_minimum_required(VERSION 3.20...4.1)
 project(MyProject)
-include(cmake/UseTYPST.cmake)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+include(UseTYPST)
 add_typst_document(DOCUMENT document ROOT_FILE doc.typ)
 add_executable(main main.cpp)
 ```

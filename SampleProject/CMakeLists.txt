@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.20...4.1)
 project(sample_project CXX)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 set(ADD_TYPST_DOCUMENT_TO_ALL_TARGET ON)
-include(cmake/UseTYPST.cmake)
+include(UseTYPST)
 add_executable(sample_executable main.cpp)
 add_typst_document(DOCUMENT sample_document ROOT_FILE doc.typ)
