@@ -1,3 +1,22 @@
+if(__USE_TYPST_INCLUDED)
+  return()
+endif()
+set(__USE_TYPST_INCLUDED TRUE)
+
+set(_USE_TYPST_MINIMUM_CMAKE_VERSION 3.12)
+if(CMAKE_VERSION VERSION_LESS _USE_TYPST_MINIMUM_CMAKE_VERSION)
+  message(
+    FATAL_ERROR
+    "UseTYPST.cmake requires CMake ${_USE_TYPST_MINIMUM_CMAKE_VERSION} or newer"
+    " because it uses:\n"
+    "  - cmake_parse_arguments(PARSE_ARGV N ...) (3.7)\n"
+    "  - list(TRANSFORM ...) (3.12)\n"
+    "  - string(PREPEND ...) (3.10)\n"
+    "  - add_custom_command(... DEPFILE ...) (3.7)\n"
+    "Current version: ${CMAKE_VERSION}"
+)
+endif()
+
 #
 # User-overridable cache variable
 #
