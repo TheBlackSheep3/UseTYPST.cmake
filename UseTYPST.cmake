@@ -1,70 +1,156 @@
-find_program(TYPST_EXECUTABLE typst)
+# File: UseTypst.cmake
+# CMAKE command to use the Typst compiler
+# Contributors:
+#   - YUGA <113231660+danfunc@users.noreply.github.com>
+#   - Niklas Dießner <40034835+TheBlackSheep3@users.noreply.github.com>
+#   - Timothy Lee <11895198+timothytylee@users.noreply.github.com>
+#
+# The following function is defined:
+#
+# add_typst_document(<typst_file>
+#                    [TARGET <target_name>]
+#                    [DEFAULT_FORMATS <format>...]
+#                    [TYPST_ROOT <root_directory>]
+#                    [PAGES <pages>]
+#                    [KEY_VALUE_PAIRS <key=value>...]
+#                    [DEPENDS <depend>...]
+#                    [FONT_DIRS <dir>...]
+#                    [EXCLUDE_FROM_ALL])
+#
+#       Adds a target for each output format that compiles <typst_file> to
+#       <name>.<output_format>, where <name> is the base name of <typst_file>
+#       and the supported output formats are 'html', 'pdf', 'png' and 'svg'.
+#       The TARGET argument can be used to override the the target filename.
+#       These targets are of the form <target_name>_<output_format>. In addition
+#       to those targets a default target <target_name> gets included which
+#       depends on all formats specified by the DEFAULT_FORMATS argument. If this
+#       argument is not provided the default is 'pdf'.
+#
+#       CMAKE_SOURCE_DIR is used as the Typst project root, unless TYPST_ROOT
+#       is specified.
+#
+#       All pages are compiled, unless the PAGES argument is specified. See
+#       `typst compile --help` for more information about the `--pages` option.
+#
+#       Key value pairs can be provided through the KEY_VALUE_PAIRS argument and
+#       are visible in typst through `sys.inputs`.
+#
+#       If the typst document depends on other targets or files, this dependency
+#       can be specified with the DEPENDS argument.
+#
+#       Additional font directories which are searched recursively for fonts are
+#       specified through the FONT_DIRS argument.
+#
+#       Unless the EXCLUDE_FROM_ALL opion is given, the default target is added
+#       to the ALL target and built by default.
+#
+# The following variable can be set to customize the behaviour of
+# add_typst_document():
+#
+# TYPST_OUTPUT_DIRECTORY
+#       The directory where compiled documents are placed.  If this variable
+#       is not defined, documents are placed inside CMAKE_CURRENT_BINARY_DIR.
 
-if(TYPST_EXECUTABLE-NOTFOUND)
-  message(FATAL_ERROR "Could not find typst executable")
+if(__USE_TYPST_INCLUDED)
+  return()
 endif()
+set(__USE_TYPST_INCLUDED TRUE)
 
-option(ADD_TYPST_DOCUMENT_TO_ALL_TARGET "Should the typst documents be include in the ALL target" OFF)
+find_program(TYPST_EXECUTABLE typst)
+set(TYPST_ALLOWED_FORMATS html pdf png svg)
 
-function(ADD_TYPST_DOCUMENT)
-  cmake_parse_arguments(
-    TYPST_TARGET
-    ""
-    "DOCUMENT;ROOT_FILE;OUTPUT_FORMAT;PAGES"
-    "KEY_VALUE_PAIRS;DEPENDS;FONT_DIRS"
-    ${ARGN}
+function(ADD_TYPST_DOCUMENT arg_TYPST_FILE)
+  # Ensure Typst is available
+  if(TYPST_EXECUTABLE-NOTFOUND)
+    message(FATAL_ERROR "Could not find typst executable")
+  endif()
+
+  # Ensure source file exists
+  cmake_path(IS_PREFIX CMAKE_CURRENT_SOURCE_DIR "${arg_TYPST_FILE}" NORMALIZE is_absolute_under_current)
+  if(is_absolute_under_current)
+    cmake_path(NORMAL_PATH arg_TYPST_FILE OUTPUT_VARIABLE source_path)
+  else()
+    cmake_path(APPEND CMAKE_CURRENT_SOURCE_DIR "${arg_TYPST_FILE}" OUTPUT_VARIABLE source_path)
+  endif()
+
+  if(NOT EXISTS "${source_path}")
+    message(SEND_ERROR "${arg_TYPST_FILE} does not exist.")
+  endif()
+
+  # Parse optional arguments
+  set(options EXCLUDE_FROM_ALL)
+  set(oneValueArgs TARGET PAGES TYPST_ROOT)
+  set(multiValueArgs KEY_VALUE_PAIRS DEPENDS FONT_DIRS DEFAULT_FORMATS)
+  cmake_parse_arguments(PARSE_ARGV 1 arg
+    "${options}" "${oneValueArgs}" "${multiValueArgs}"
   )
 
-  if (NOT DEFINED TYPST_TARGET_DOCUMENT OR NOT DEFINED TYPST_TARGET_ROOT_FILE)
-    message(SEND_ERROR "ADD_TYPST_DOCUMENT requires DOCUMENT and ROOT_FILE")
-    return()
+  if(DEFINED arg_TARGET)
+    # Ensure TARGET is a target name if provided
+    cmake_path(GET arg_TARGET STEM target_name)
+    if(NOT "${arg_TARGET}" STREQUAL "${target_name}")
+      message(SEND_ERROR "TARGET must not contain any directory components or file extensions.")
+    endif()
+  else()
+    cmake_path(GET arg_TYPST_FILE STEM target_name)
   endif()
 
-  if (NOT DEFINED TYPST_TARGET_OUTPUT_FORMAT)
-    set(TYPST_TARGET_OUTPUT_FORMAT "pdf")
+  if (DEFINED arg_PAGES)
+    string(PREPEND arg_PAGES "--pages=")
   endif()
 
-  string(TOLOWER ${TYPST_TARGET_OUTPUT_FORMAT} TYPST_TARGET_OUTPUT_FORMAT)
-
-  if (NOT (${TYPST_TARGET_OUTPUT_FORMAT} STREQUAL html OR ${TYPST_TARGET_OUTPUT_FORMAT} STREQUAL pdf OR ${TYPST_TARGET_OUTPUT_FORMAT} STREQUAL png OR ${TYPST_TARGET_OUTPUT_FORMAT} STREQUAL svg))
-    message(SEND_ERROR "ADD_TYPST_DOCUMENT only supports output formats: html, pdf, png, svg")
-    return()
+  if (DEFINED arg_KEY_VALUE_PAIRS)
+    list(TRANSFORM arg_KEY_VALUE_PAIRS PREPEND "--input=")
   endif()
 
-  if (DEFINED TYPST_TARGET_KEY_VALUE_PAIRS)
-    list(TRANSFORM TYPST_TARGET_KEY_VALUE_PAIRS PREPEND "--input=")
+  if(NOT DEFINED arg_TYPST_ROOT)
+    set(arg_TYPST_ROOT "${CMAKE_SOURCE_DIR}")
   endif()
 
-  if (DEFINED TYPST_TARGET_PAGES)
-    string(PREPEND TYPST_TARGET_PAGES "--pages=")
+  if(NOT DEFINED arg_DEFAULT_FORMATS)
+    set(arg_DEFAULT_FORMATS pdf)
   endif()
 
-  if (DEFINED TYPST_TARGET_FONT_DIRS)
-    cmake_path(CONVERT "${TYPST_TARGET_FONT_DIRS}" TO_NATIVE_PATH_LIST font-list NORMALIZE)
+  set(formats_copy ${arg_DEFAULT_FORMATS})
+  list(REMOVE_ITEM formats_copy ${TYPST_ALLOWED_FORMATS})
+  if(formats_copy)
+    message(SEND_ERROR "FORMAT must consist of values 'html', 'pdf', 'png' or 'svg'. ${formats_copy} is not valid")
+  endif()
+
+  unset(fonts)
+  if (DEFINED arg_FONT_DIRS)
+    cmake_path(CONVERT "${arg_FONT_DIRS}" TO_NATIVE_PATH_LIST font-list NORMALIZE)
     set(fonts "--font-path" "${font-list}")
   endif()
 
-  if (${ADD_TYPST_DOCUMENT_TO_ALL_TARGET})
-    add_custom_target(${TYPST_TARGET_DOCUMENT} ALL DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/${TYPST_TARGET_DOCUMENT}.${TYPST_TARGET_OUTPUT_FORMAT}" ${TYPST_TARGET_DEPENDS})
+  # Determine target path
+  cmake_path(GET source_path PARENT_PATH parent_source)
+  if(TYPST_OUTPUT_DIRECTORY)
+    string(REPLACE "${CMAKE_CURRENT_SOURCE_DIR}" "${TYPST_OUTPUT_DIRECTORY}" output_dir ${parent_source})
   else()
-    add_custom_target(${TYPST_TARGET_DOCUMENT} DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/${TYPST_TARGET_DOCUMENT}.${TYPST_TARGET_OUTPUT_FORMAT}" ${TYPST_TARGET_DEPENDS})
+    string(REPLACE "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}" output_dir ${parent_source})
   endif()
-
-  if (NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${TYPST_TARGET_ROOT_FILE}")
-    message(SEND_ERROR "Can not find root document file ${TYPST_TARGET_ROOT_FILE}")
-    return()
+  foreach(format IN LISTS TYPST_ALLOWED_FORMATS)
+    set(output "${output_dir}/${target_name}.${format}")
+    set(dep_file "${output}.d")
+    cmake_path(NATIVE_PATH output output)
+    cmake_path(NATIVE_PATH dep_file dep_file)
+    cmake_path(NATIVE_PATH source_path source)
+    cmake_path(NATIVE_PATH arg_TYPST_ROOT root_dir)
+    add_custom_command(
+      OUTPUT "${output}"
+      COMMAND ${TYPST_EXECUTABLE} compile ${arg_KEY_VALUE_PAIRS} --format ${format} ${arg_PAGES} --make-deps "${dep_file}" --root "${root_dir}" ${fonts} "${source}" "${output}"
+      DEPENDS "${source}"
+      DEPFILE "${dep_file}"
+      VERBATIM
+    )
+    add_custom_target(${target_name}_${format} DEPENDS "${output}" ${arg_DEPENDS})
+  endforeach()
+  set(default_targets ${arg_DEFAULT_FORMATS})
+  list(TRANSFORM default_targets PREPEND "${target_name}_")
+  if(arg_EXCLUDE_FROM_ALL)
+    add_custom_target(${target_name} DEPENDS ${default_targets})
+  else()
+    add_custom_target(${target_name} ALL DEPENDS ${default_targets})
   endif()
-
-  cmake_path(SET TYPST_TARGET_ROOT_OUTPUT_DIR "${CMAKE_BINARY_DIR}")
-  cmake_path(RELATIVE_PATH TYPST_TARGET_ROOT_OUTPUT_DIR BASE_DIRECTORY "${CMAKE_SOURCE_DIR}")
-  # prepend '/' to relative path so typst evaluates them relative to root
-  string(PREPEND TYPST_TARGET_ROOT_OUTPUT_DIR "/")
-
-  add_custom_command(
-    OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/${TYPST_TARGET_DOCUMENT}.${TYPST_TARGET_OUTPUT_FORMAT}"
-    COMMAND ${TYPST_EXECUTABLE} compile --input root_output_dir=${TYPST_TARGET_ROOT_OUTPUT_DIR} ${TYPST_TARGET_KEY_VALUE_PAIRS} --format ${TYPST_TARGET_OUTPUT_FORMAT} ${TYPST_TARGET_PAGES} --make-deps "${CMAKE_CURRENT_BINARY_DIR}/${TYPST_TARGET_DOCUMENT}.d" --root "${CMAKE_SOURCE_DIR}" ${fonts} "${CMAKE_CURRENT_SOURCE_DIR}/${TYPST_TARGET_ROOT_FILE}" "${CMAKE_CURRENT_BINARY_DIR}/${TYPST_TARGET_DOCUMENT}.${TYPST_TARGET_OUTPUT_FORMAT}"
-    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/${TYPST_TARGET_ROOT_FILE}"
-    DEPFILE "${CMAKE_CURRENT_BINARY_DIR}/${TYPST_TARGET_DOCUMENT}.d"
-    VERBATIM
-  )
 endfunction()

@@ -8,7 +8,7 @@
 	= My cool presentation
 	Example presentation to show some features of `UseTYPST.cmake`
 
-	#datetime(day: 12, month: 10, year: 2025).display("[day padding:zero]. [month repr:long] [year]")
+	#datetime(day: 3, month: 11, year: 2026).display("[day padding:zero]. [month repr:long] [year]")
 ]
 
 #slide[
@@ -26,17 +26,20 @@
 	#align(horizon)[
 		```cmake
 		include(UseTYPST.cmake)
-		add_typst_document(DOCUMENT document ROOT_FILE doc.typ)
+		add_typst_document(doc.typ TARGET document)
 		```
 	]
 ]
 
 #slide[
 	= Parameters
-	- `DOCUMENT` name of the document _required_
-	- `ROOT_FILE` file name of the root typst file _required_
-	- `OUTPUT_FOMAT` output format of the document (default `pdf`)
-	- `KEY_VALUE_PAIRS` list of key value pairs passed to typst
-	- `DEPENDS` CMake target the document depends on
+	- positional argument, file name of the root typst file _required_
+	- `TARGET` name of the document
+	- `DEFAULT_FOMATS` output formats which are added to the default target (default `pdf`)
+	- `TYPST_ROOT` typst project root (default `CMAKE_SOURCE_DIR`)
 	- `PAGES` which pages of the document to export
+	- `KEY_VALUE_PAIRS` list of key value pairs passed to typst
+	- `DEPENDS` CMake targets or files the document depends on
+	- `FONT_DIRS` additional search paths for fonts
+	- `EXCLUDE_FROM_ALL` do not include default target into the ALL target created by cmake
 ]
