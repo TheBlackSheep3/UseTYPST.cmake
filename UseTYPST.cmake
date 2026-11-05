@@ -95,12 +95,12 @@ set(
 
 # Find executable if not explicitly specified, also respecting environment
 # variable `TYPST_ROOT`
-if(NOT TYPST_EXECUTABLE)
-  if(DEBUG_USE_TYPST)
-    cmake_print_variables(TYPST_EXECUTABLE TYPST_ROOT)
-  endif()
-  find_program(TYPST_EXECUTABLE typst HINTS "${TYPST_ROOT}" ENV TYPST_ROOT PATH_SUFFIXES bin)
-endif()
+find_program(
+  TYPST_EXECUTABLE
+  typst
+  HINTS "${TYPST_ROOT}" ENV TYPST_ROOT
+  PATH_SUFFIXES bin
+)
 if(DEBUG_USE_TYPST)
   cmake_print_variables(TYPST_EXECUTABLE)
 endif()
