@@ -225,6 +225,7 @@ function(ADD_TYPST_DOCUMENT arg_TYPST_FILE)
   if(NOT DEFINED arg_DEFAULT_FORMATS)
     set(arg_DEFAULT_FORMATS pdf)
   endif()
+  string(TOLOWER ${arg_DEFAULT_FORMATS} arg_DEFAULT_FORMATS)
 
   set(formats_copy ${arg_DEFAULT_FORMATS})
   list(REMOVE_ITEM formats_copy ${__TYPST_ALLOWED_FORMATS})
