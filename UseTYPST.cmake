@@ -23,8 +23,8 @@
 #       The TARGET argument can be used to override the the target filename.
 #       These targets are of the form <target_name>_<output_format>. In addition
 #       to those targets a default target <target_name> gets included which
-#       depends on all formats specified by the DEFAULT_FORMATS argument. If this
-#       argument is not provided the default is 'pdf'.
+#       depends on all formats specified by the DEFAULT_FORMATS argument. If
+#       this argument is not provided the default is 'pdf'.
 #
 #       CMAKE_SOURCE_DIR is used as the Typst project root, unless TYPST_ROOT
 #       is specified.
@@ -191,10 +191,10 @@ function(ADD_TYPST_DOCUMENT arg_TYPST_FILE)
   cmake_parse_arguments(PARSE_ARGV 1 arg
     "${options}" "${oneValueArgs}" "${multiValueArgs}"
   )
-  if(TYPST_VERSION VERSION_LESS_EQUAL 0.13)
-    set(deps_string --make-deps)
-  else()
+  if(TYPST_VERSION VERSION_GREATER_EQUAL 0.14)
     set(deps_string --deps-format make --deps)
+  else()
+    set(deps_string --make-deps)
   endif()
 
   if(DEFINED arg_TARGET)
@@ -267,11 +267,18 @@ function(ADD_TYPST_DOCUMENT arg_TYPST_FILE)
     cmake_path(NATIVE_PATH dep_file dep_file)
     cmake_path(NATIVE_PATH source_path source)
     cmake_path(NATIVE_PATH arg_TYPST_ROOT root_dir)
+    if(${format} STREQUAL pdf
+        AND TYPST_VERSION VERSION_GREATER_EQUAL 0.14
+        AND arg_PAGES)
+      set(pdf_tags_string "--no-pdf-tags")
+    else()
+      unset(pdf_tags_string)
+    endif()
     add_custom_command(
       OUTPUT "${output}"
       COMMAND ${TYPST_EXECUTABLE} compile ${arg_KEY_VALUE_PAIRS}
       --format ${format} ${arg_PAGES} ${deps_string} "${dep_file}"
-      --root "${root_dir}" ${fonts} "${source}" "${output}"
+      --root "${root_dir}" ${pdf_tags_string} ${fonts} "${source}" "${output}"
       DEPENDS "${source}"
       DEPFILE "${dep_file}"
       VERBATIM
