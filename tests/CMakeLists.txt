@@ -62,7 +62,7 @@ function(usetypst_add_failing_fixture_test)
       --build-options ${USETYPST_TEST_CONFIGURE_OPTIONS}
   )
   set_tests_properties(${ARG_NAME} PROPERTIES
-    PASS_REGULAR_EXPRESSION "${ARG_EXPECT_ERROR}"
+    PASS_REGULAR_EXPRESSION "ADD_TYPST_DOCUMENT: ${ARG_EXPECT_ERROR}"
     LABELS "integration;expected-failure"
   )
 endfunction()
@@ -130,7 +130,7 @@ endforeach()
 usetypst_add_failing_fixture_test(
   NAME typst.error.invalid_output_format
   FIXTURE invalid-output-format
-  EXPECT_ERROR "DEFAULT_FORMATS must consist of values 'html', 'pdf', 'png' or 'svg'."
+  EXPECT_ERROR "DEFAULT_FORMATS must consist of values 'html', 'pdf'"
 )
 
 # usetypst_add_rebuild_test(

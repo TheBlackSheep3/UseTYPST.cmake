@@ -146,7 +146,7 @@ set(__TYPST_ALLOWED_FORMATS html pdf png svg)
 function(ADD_TYPST_DOCUMENT arg_TYPST_FILE)
   # Ensure Typst is available
   if(NOT TYPST_EXECUTABLE)
-    message(FATAL_ERROR "Could not find Typst executable.")
+    message(FATAL_ERROR "ADD_TYPST_DOCUMENT: Could not find Typst executable.")
   endif()
 
   # Check for available Typst version
@@ -181,7 +181,7 @@ function(ADD_TYPST_DOCUMENT arg_TYPST_FILE)
   endif()
 
   if(NOT EXISTS "${source_path}")
-    message(SEND_ERROR "${arg_TYPST_FILE} does not exist.")
+    message(SEND_ERROR "ADD_TYPST_DOCUMENT: ${arg_TYPST_FILE} does not exist.")
   endif()
 
   # Parse optional arguments
@@ -200,7 +200,10 @@ function(ADD_TYPST_DOCUMENT arg_TYPST_FILE)
   if(DEFINED arg_TARGET)
     # Ensure TARGET is a valid target name if provided
     if(NOT arg_TARGET MATCHES "^[A-Za-z0-9_.+-]+$")
-      message(SEND_ERROR "TARGET must be a valid CMake target name.")
+      message(
+        SEND_ERROR
+        "ADD_TYPST_DOCUMENT: TARGET must be a valid CMake target name."
+      )
     endif()
   else()
     cmake_path(GET arg_TYPST_FILE STEM arg_TARGET)
@@ -228,8 +231,8 @@ function(ADD_TYPST_DOCUMENT arg_TYPST_FILE)
   if(formats_copy)
     message(
       SEND_ERROR
-      "DEFAULT_FORMATS must consist of values 'html', 'pdf', 'png' or 'svg'. "
-      "${formats_copy} is not valid."
+      "ADD_TYPST_DOCUMENT: DEFAULT_FORMATS must consist of values 'html', 'pdf'"
+      ", 'png' or 'svg'. '${formats_copy}' is not valid."
     )
   endif()
 
