@@ -40,6 +40,33 @@ function(usetypst_add_fixture_test)
   set_tests_properties(${ARG_NAME} PROPERTIES LABELS "integration")
 endfunction()
 
+# usetypst_add_failing_fixture_test(
+#   NAME <test-name>
+#   FIXTURE <dir under fixtures/>
+#   EXPECT_ERROR <regex the failure output must match>
+# )
+# Passes only if the fixture fails AND the output matches EXPECT_ERROR,
+# so an unrelated failure (e.g. typst not found) is still reported.
+function(usetypst_add_failing_fixture_test)
+  cmake_parse_arguments(ARG "" "NAME;FIXTURE;EXPECT_ERROR" "" ${ARGN})
+
+  set(source_dir "${CMAKE_CURRENT_SOURCE_DIR}/fixtures/errors/${ARG_FIXTURE}")
+  set(binary_dir "${CMAKE_CURRENT_BINARY_DIR}/errors/${ARG_FIXTURE}")
+
+  add_test(NAME ${ARG_NAME}
+    COMMAND ${CMAKE_CTEST_COMMAND}
+      --build-and-test "${source_dir}" "${binary_dir}"
+      --build-generator "${CMAKE_GENERATOR}"
+      --build-makeprogram "${CMAKE_MAKE_PROGRAM}"
+      --build-project "UseTYPST_${ARG_FIXTURE}_test"
+      --build-options ${USETYPST_TEST_CONFIGURE_OPTIONS}
+  )
+  set_tests_properties(${ARG_NAME} PROPERTIES
+    PASS_REGULAR_EXPRESSION "${ARG_EXPECT_ERROR}"
+    LABELS "integration;expected-failure"
+  )
+endfunction()
+
 add_test(NAME typst.version
   COMMAND ${CMAKE_COMMAND} ${USETYPST_TEST_CONFIGURE_OPTIONS}
     -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/verify_version.cmake"
@@ -52,4 +79,10 @@ usetypst_add_fixture_test(
   FIXTURE basic
   TARGET doc
   OUTPUT doc.pdf
+)
+
+usetypst_add_failing_fixture_test(
+  NAME typst.error.missing_file
+  FIXTURE missing-file
+  EXPECT_ERROR "does-not-exist\\.typ does not exist."
 )
