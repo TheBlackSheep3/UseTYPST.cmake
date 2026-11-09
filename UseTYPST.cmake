@@ -198,16 +198,12 @@ function(ADD_TYPST_DOCUMENT arg_TYPST_FILE)
   endif()
 
   if(DEFINED arg_TARGET)
-    # Ensure TARGET is a target name if provided
-    cmake_path(GET arg_TARGET STEM target_name)
-    if(NOT "${arg_TARGET}" STREQUAL "${target_name}")
-      message(
-        SEND_ERROR
-        "TARGET must not contain any directory components or file extensions."
-      )
+    # Ensure TARGET is a valid target name if provided
+    if(NOT arg_TARGET MATCHES "^[A-Za-z0-9_.+-]+$")
+      message(SEND_ERROR "TARGET must be a valid CMake target name.")
     endif()
   else()
-    cmake_path(GET arg_TYPST_FILE STEM target_name)
+    cmake_path(GET arg_TYPST_FILE STEM arg_TARGET)
   endif()
 
   if (DEFINED arg_PAGES)
@@ -262,7 +258,7 @@ function(ADD_TYPST_DOCUMENT arg_TYPST_FILE)
     ${parent_source}
   )
   foreach(format IN LISTS __TYPST_ALLOWED_FORMATS)
-    set(output "${output_dir}/${target_name}.${format}")
+    set(output "${output_dir}/${arg_TARGET}.${format}")
     set(dep_file "${output}.d")
     cmake_path(NATIVE_PATH output output)
     cmake_path(NATIVE_PATH dep_file dep_file)
@@ -285,14 +281,14 @@ function(ADD_TYPST_DOCUMENT arg_TYPST_FILE)
       VERBATIM
     )
     add_custom_target(
-      ${target_name}_${format}
+      ${arg_TARGET}_${format}
       DEPENDS "${output}" ${arg_DEPENDS})
   endforeach()
   set(default_targets ${arg_DEFAULT_FORMATS})
-  list(TRANSFORM default_targets PREPEND "${target_name}_")
+  list(TRANSFORM default_targets PREPEND "${arg_TARGET}_")
   if(arg_EXCLUDE_FROM_ALL)
-    add_custom_target(${target_name} DEPENDS ${default_targets})
+    add_custom_target(${arg_TARGET} DEPENDS ${default_targets})
   else()
-    add_custom_target(${target_name} ALL DEPENDS ${default_targets})
+    add_custom_target(${arg_TARGET} ALL DEPENDS ${default_targets})
   endif()
 endfunction()
