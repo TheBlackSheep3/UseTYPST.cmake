@@ -228,7 +228,7 @@ function(ADD_TYPST_DOCUMENT arg_TYPST_FILE)
   if(formats_copy)
     message(
       SEND_ERROR
-      "FORMAT must consist of values 'html', 'pdf', 'png' or 'svg'. "
+      "DEFAULT_FORMATS must consist of values 'html', 'pdf', 'png' or 'svg'. "
       "${formats_copy} is not valid."
     )
   endif()

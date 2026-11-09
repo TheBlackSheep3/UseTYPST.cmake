@@ -110,3 +110,9 @@ foreach(target IN LISTS invalid_targets)
     EXPECT_ERROR "TARGET must be a valid CMake target name."
   )
 endforeach()
+
+usetypst_add_failing_fixture_test(
+  NAME typst.error.invalid_output_format
+  FIXTURE invalid-output-format
+  EXPECT_ERROR "DEFAULT_FORMATS must consist of values 'html', 'pdf', 'png' or 'svg'."
+)
