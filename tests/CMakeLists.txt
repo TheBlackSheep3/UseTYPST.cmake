@@ -130,3 +130,60 @@ usetypst_add_failing_fixture_test(
   FIXTURE invalid-output-format
   EXPECT_ERROR "DEFAULT_FORMATS must consist of values 'html', 'pdf', 'png' or 'svg'."
 )
+
+# usetypst_add_rebuild_test(
+#   NAME <test-name>
+#   FIXTURE <dir under fixtures/>
+#   TARGET <custom target created by add_typst_document>
+#   OUTPUT <expected output file, relative to the fixture's build dir>
+#   [MODIFY <file in the fixture to change before the second build>]
+# )
+# Builds the fixture twice. Without MODIFY the second build must not touch
+# OUTPUT, with MODIFY it must regenerate it. See scripts/check_rebuild.cmake.
+function(usetypst_add_rebuild_test)
+  cmake_parse_arguments(ARG "" "NAME;FIXTURE;TARGET;OUTPUT;MODIFY" "" ${ARGN})
+
+  add_test(NAME ${ARG_NAME}
+    COMMAND ${CMAKE_COMMAND}
+      "-DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}/fixtures/${ARG_FIXTURE}"
+      "-DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/rebuild/${ARG_NAME}"
+      "-DGENERATOR=${CMAKE_GENERATOR}"
+      "-DGENERATOR_PLATFORM=${CMAKE_GENERATOR_PLATFORM}"
+      "-DGENERATOR_TOOLSET=${CMAKE_GENERATOR_TOOLSET}"
+      "-DMAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}"
+      "-DCONFIG=$<CONFIG>"
+      "-DMODULE_PATH=${PROJECT_SOURCE_DIR}"
+      "-DTYPST_EXECUTABLE=${TYPST_EXECUTABLE}"
+      "-DTARGET=${ARG_TARGET}"
+      "-DOUTPUT=${ARG_OUTPUT}"
+      "-DMODIFY=${ARG_MODIFY}"
+      -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/check_rebuild.cmake"
+  )
+  set_tests_properties(${ARG_NAME} PROPERTIES LABELS "integration;rebuild")
+endfunction()
+
+usetypst_add_rebuild_test(
+  NAME typst.rebuild.no_change
+  FIXTURE multi-file
+  TARGET doc
+  OUTPUT doc.pdf
+)
+
+# One test per input of the multi-file fixture: the root file, an #include
+# and an image. Every file in the fixture except CMakeLists.txt must be a
+# dependency of the document.
+file(GLOB rebuild_inputs
+  RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/fixtures/multi-file"
+  "${CMAKE_CURRENT_SOURCE_DIR}/fixtures/multi-file/*"
+)
+list(REMOVE_ITEM rebuild_inputs CMakeLists.txt)
+foreach(input IN LISTS rebuild_inputs)
+  string(MAKE_C_IDENTIFIER "${input}" name)
+  usetypst_add_rebuild_test(
+    NAME typst.rebuild.${name}
+    FIXTURE multi-file
+    TARGET doc
+    OUTPUT doc.pdf
+    MODIFY "${input}"
+  )
+endforeach()
