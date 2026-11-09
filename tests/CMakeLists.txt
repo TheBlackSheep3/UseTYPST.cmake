@@ -114,9 +114,11 @@ usetypst_add_failing_fixture_test(
   EXPECT_ERROR "Could not find Typst executable."
 )
 
-file(GLOB invalid_targets "fixtures/errors/invalid-target-*")
-foreach(target IN LISTS invalid_targets)
-  cmake_path(GET target STEM fixture)
+file(GLOB invalid_targets
+  RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/fixtures/errors"
+  "${CMAKE_CURRENT_SOURCE_DIR}/fixtures/errors/invalid-target-*"
+)
+foreach(fixture IN LISTS invalid_targets)
   string(MAKE_C_IDENTIFIER "${fixture}" name)
   usetypst_add_failing_fixture_test(
     NAME typst.error.${name}
