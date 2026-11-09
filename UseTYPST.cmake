@@ -209,6 +209,13 @@ function(ADD_TYPST_DOCUMENT arg_TYPST_FILE)
     cmake_path(GET arg_TYPST_FILE STEM arg_TARGET)
   endif()
 
+  if(TARGET ${arg_TARGET})
+    message(
+      SEND_ERROR
+      "ADD_TYPST_DOCUMENT: target '${arg_TARGET}' already exists."
+    )
+  endif()
+
   if (DEFINED arg_PAGES)
     string(PREPEND arg_PAGES "--pages=")
   endif()

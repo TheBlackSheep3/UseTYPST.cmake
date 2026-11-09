@@ -128,6 +128,12 @@ foreach(fixture IN LISTS invalid_targets)
 endforeach()
 
 usetypst_add_failing_fixture_test(
+  NAME typst.error.duplicate_target
+  FIXTURE duplicate-target
+  EXPECT_ERROR "target 'doc' already exists."
+)
+
+usetypst_add_failing_fixture_test(
   NAME typst.error.invalid_output_format
   FIXTURE invalid-output-format
   EXPECT_ERROR "DEFAULT_FORMATS must consist of values 'html', 'pdf'"
