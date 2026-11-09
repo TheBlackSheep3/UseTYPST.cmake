@@ -40,6 +40,13 @@ function(usetypst_add_fixture_test)
   set_tests_properties(${ARG_NAME} PROPERTIES LABELS "integration")
 endfunction()
 
+add_test(NAME typst.version
+  COMMAND ${CMAKE_COMMAND} ${USETYPST_TEST_CONFIGURE_OPTIONS}
+    -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/verify_version.cmake"
+)
+# Exit code 2 indicates test skip
+set_tests_properties(typst.version PROPERTIES SKIP_RETURN_CODE 2)
+
 usetypst_add_fixture_test(
   NAME typst.basic
   FIXTURE basic
