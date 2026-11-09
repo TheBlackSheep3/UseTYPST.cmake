@@ -81,6 +81,13 @@ usetypst_add_fixture_test(
   OUTPUT doc.pdf
 )
 
+usetypst_add_fixture_test(
+  NAME typst.absolute_path
+  FIXTURE absolute-path
+  TARGET doc
+  OUTPUT doc.pdf
+)
+
 usetypst_add_failing_fixture_test(
   NAME typst.error.missing_file
   FIXTURE missing-file
