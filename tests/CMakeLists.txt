@@ -97,7 +97,7 @@ usetypst_add_failing_fixture_test(
 usetypst_add_failing_fixture_test(
   NAME typst.error.missing_typst
   FIXTURE missing-typst
-  EXPECT_ERROR "Could not find Typst executable"
+  EXPECT_ERROR "Could not find Typst executable."
 )
 
 file(GLOB invalid_targets "fixtures/errors/invalid-target-*")

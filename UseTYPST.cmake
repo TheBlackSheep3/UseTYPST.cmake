@@ -146,7 +146,7 @@ set(__TYPST_ALLOWED_FORMATS html pdf png svg)
 function(ADD_TYPST_DOCUMENT arg_TYPST_FILE)
   # Ensure Typst is available
   if(NOT TYPST_EXECUTABLE)
-    message(FATAL_ERROR "Could not find Typst executable")
+    message(FATAL_ERROR "Could not find Typst executable.")
   endif()
 
   # Check for available Typst version
