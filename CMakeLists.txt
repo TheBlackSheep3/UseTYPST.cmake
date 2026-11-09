@@ -12,3 +12,9 @@ add_typst_document(slides.typ TARGET slides-short PAGES 1-3 KEY_VALUE_PAIRS form
 add_typst_document(slides.typ TARGET slides-full KEY_VALUE_PAIRS format=${SLIDE_FORMAT})
 add_subdirectory(subdir)
 add_subdirectory(SampleProject)
+
+option(USETYPST_BUILD_TESTS "Build the UseTYPST integration tests" ON)
+if(USETYPST_BUILD_TESTS)
+  enable_testing()
+  add_subdirectory(tests)
+endif()
