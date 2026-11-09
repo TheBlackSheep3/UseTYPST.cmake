@@ -93,3 +93,9 @@ usetypst_add_failing_fixture_test(
   FIXTURE missing-file
   EXPECT_ERROR "does-not-exist\\.typ does not exist."
 )
+
+usetypst_add_failing_fixture_test(
+  NAME typst.error.missing_typst
+  FIXTURE missing-typst
+  EXPECT_ERROR "Could not find Typst executable"
+)
