@@ -146,17 +146,19 @@ set(__TYPST_ALLOWED_FORMATS html pdf png svg)
 function(ADD_TYPST_DOCUMENT arg_TYPST_FILE)
   # Ensure Typst is available
   if(NOT TYPST_EXECUTABLE)
-    message(FATAL_ERROR "ADD_TYPST_DOCUMENT: Could not find Typst executable.")
+    message(
+      FATAL_ERROR
+      "${CMAKE_CURRENT_FUNCTION}: Could not find Typst executable."
+    )
   endif()
 
   # Check for available Typst version
   if(TYPST_VERSION VERSION_LESS __USE_TYPST_MINIMUM_TYPST_VERSION)
     message(
       WARNING
-      "UseTYPST.cmake was developed and tested using Typst version "
-      "${__USE_TYPST_MINIMUM_TYPST_VERSION} and up. Some options might not work"
-      " propperly.\n"
-      "Current version: ${TYPST_VERSION}"
+      "${CMAKE_CURRENT_FUNCTION}: UseTYPST.cmake was developed and tested using"
+      " Typst version ${__USE_TYPST_MINIMUM_TYPST_VERSION} and up. Some options"
+      " might not work propperly.\nCurrent version: ${TYPST_VERSION}"
     )
   endif()
 
@@ -181,7 +183,10 @@ function(ADD_TYPST_DOCUMENT arg_TYPST_FILE)
   endif()
 
   if(NOT EXISTS "${source_path}")
-    message(SEND_ERROR "ADD_TYPST_DOCUMENT: ${arg_TYPST_FILE} does not exist.")
+    message(
+      SEND_ERROR
+      "${CMAKE_CURRENT_FUNCTION}: ${arg_TYPST_FILE} does not exist."
+    )
   endif()
 
   # Parse optional arguments
@@ -202,7 +207,7 @@ function(ADD_TYPST_DOCUMENT arg_TYPST_FILE)
     if(NOT arg_TARGET MATCHES "^[A-Za-z0-9_.+-]+$")
       message(
         SEND_ERROR
-        "ADD_TYPST_DOCUMENT: TARGET must be a valid CMake target name."
+        "${CMAKE_CURRENT_FUNCTION}: TARGET must be a valid CMake target name."
       )
     endif()
   else()
@@ -212,7 +217,7 @@ function(ADD_TYPST_DOCUMENT arg_TYPST_FILE)
   if(TARGET ${arg_TARGET})
     message(
       SEND_ERROR
-      "ADD_TYPST_DOCUMENT: target '${arg_TARGET}' already exists."
+      "${CMAKE_CURRENT_FUNCTION}: target '${arg_TARGET}' already exists."
     )
   endif()
 
@@ -238,8 +243,8 @@ function(ADD_TYPST_DOCUMENT arg_TYPST_FILE)
   if(formats_copy)
     message(
       SEND_ERROR
-      "ADD_TYPST_DOCUMENT: DEFAULT_FORMATS must consist of values 'html', 'pdf'"
-      ", 'png' or 'svg'. '${formats_copy}' is not valid."
+      "${CMAKE_CURRENT_FUNCTION}: DEFAULT_FORMATS must consist of values 'html'"
+      ", 'pdf', 'png' or 'svg'. '${formats_copy}' is not valid."
     )
   endif()
 
