@@ -16,13 +16,16 @@ endif()
 #   NAME <test-name>
 #   FIXTURE <dir under fixtures/>
 #   TARGET <custom target created by add_typst_document>
-#   OUTPUT <expected output file, relative to the fixture's build dir>
+#   OUTPUT <expected output file>... (relative to the fixture's build dir)
 # )
+# Each output is checked by scripts/verify_outputs.cmake according to its
+# file extension.
 function(usetypst_add_fixture_test)
-  cmake_parse_arguments(ARG "" "NAME;FIXTURE;TARGET;OUTPUT" "" ${ARGN})
+  cmake_parse_arguments(ARG "" "NAME;FIXTURE;TARGET" "OUTPUT" ${ARGN})
 
   set(source_dir "${CMAKE_CURRENT_SOURCE_DIR}/fixtures/${ARG_FIXTURE}")
   set(binary_dir "${CMAKE_CURRENT_BINARY_DIR}/${ARG_FIXTURE}")
+  list(TRANSFORM ARG_OUTPUT PREPEND "${binary_dir}/" OUTPUT_VARIABLE outputs)
 
   add_test(NAME ${ARG_NAME}
     COMMAND ${CMAKE_CTEST_COMMAND}
@@ -34,8 +37,8 @@ function(usetypst_add_fixture_test)
       # --build-options must be last before --test-command
       --build-options ${USETYPST_TEST_CONFIGURE_OPTIONS}
       --test-command "${CMAKE_COMMAND}"
-        "-DOUTPUT=${binary_dir}/${ARG_OUTPUT}"
-        -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/verify_pdf.cmake"
+        "-DOUTPUTS=${outputs}"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/scripts/verify_outputs.cmake"
   )
   set_tests_properties(${ARG_NAME} PROPERTIES LABELS "integration")
 endfunction()
@@ -100,6 +103,13 @@ usetypst_add_fixture_test(
   FIXTURE multi-file
   TARGET doc
   OUTPUT doc.pdf
+)
+
+usetypst_add_fixture_test(
+  NAME typst.multiple_formats
+  FIXTURE multi-formats
+  TARGET doc
+  OUTPUT doc.pdf doc.png doc.svg doc.html
 )
 
 usetypst_add_failing_fixture_test(

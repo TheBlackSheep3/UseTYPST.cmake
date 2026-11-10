@@ -141,7 +141,15 @@ mark_as_advanced(
   DEBUG_USE_TYPST
 )
 
-set(__TYPST_ALLOWED_FORMATS html pdf png svg)
+set(__TYPST_ALLOWED_FORMATS pdf png svg)
+if(TYPST_VERSION VERSION_GREATER_EQUAL 0.13)
+  list(APPEND __TYPST_ALLOWED_FORMATS html)
+  list(SORT __TYPST_ALLOWED_FORMATS
+    COMPARE STRING
+    CASE INSENSITIVE
+    ORDER ASCENDING
+  )
+endif()
 
 function(ADD_TYPST_DOCUMENT arg_TYPST_FILE)
   # Ensure Typst is available
@@ -233,10 +241,27 @@ function(ADD_TYPST_DOCUMENT arg_TYPST_FILE)
     set(arg_TYPST_ROOT "${CMAKE_SOURCE_DIR}")
   endif()
 
-  if(NOT DEFINED arg_DEFAULT_FORMATS)
+  if(DEFINED arg_DEFAULT_FORMATS)
+    list(TRANSFORM arg_DEFAULT_FORMATS TOLOWER)
+    if(TYPST_VERSION VERSION_LESS 0.13 AND html IN_LIST arg_DEFAULT_FORMATS)
+      message(
+        SEND_ERROR
+        "${CMAKE_CURRENT_FUNCTION}: output format html is only supported for"
+        " typst version 0.13.0 upwards.\nCurrent version: ${TYPST_VERSION}"
+      )
+      list(REMOVE_ITEM arg_DEFAULT_FORMATS html)
+    endif()
+    list(LENGTH arg_DEFAULT_FORMATS formats_length)
+    if(formats_length EQUAL 0)
+      message(
+        WARNING
+        "${CMAKE_CURRENT_FUNCTION}: DEFAULT_FORMATS is empty, inserting 'pdf'."
+      )
+      set(arg_DEFAULT_FORMATS pdf)
+    endif()
+  else()
     set(arg_DEFAULT_FORMATS pdf)
   endif()
-  string(TOLOWER ${arg_DEFAULT_FORMATS} arg_DEFAULT_FORMATS)
 
   set(formats_copy ${arg_DEFAULT_FORMATS})
   list(REMOVE_ITEM formats_copy ${__TYPST_ALLOWED_FORMATS})
@@ -286,11 +311,18 @@ function(ADD_TYPST_DOCUMENT arg_TYPST_FILE)
     else()
       unset(pdf_tags_string)
     endif()
+    if(${format} STREQUAL html)
+      set(feature_flags --features)
+      list(APPEND feature_flags html)
+    else()
+      unset(feature_flags)
+    endif()
     add_custom_command(
       OUTPUT "${output}"
       COMMAND ${TYPST_EXECUTABLE} compile ${arg_KEY_VALUE_PAIRS}
-      --format ${format} ${arg_PAGES} ${deps_string} "${dep_file}"
-      --root "${root_dir}" ${pdf_tags_string} ${fonts} "${source}" "${output}"
+        --format ${format} ${arg_PAGES} ${deps_string} "${dep_file}"
+        --root "${root_dir}" ${pdf_tags_string} ${feature_flags} ${fonts}
+        "${source}" "${output}"
       DEPENDS "${source}"
       DEPFILE "${dep_file}"
       VERBATIM
