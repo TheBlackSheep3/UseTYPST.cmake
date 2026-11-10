@@ -53,15 +53,16 @@ endfunction()
 function(usetypst_add_failing_fixture_test)
   cmake_parse_arguments(ARG "" "NAME;FIXTURE;EXPECT_ERROR" "" ${ARGN})
 
-  set(source_dir "${CMAKE_CURRENT_SOURCE_DIR}/fixtures/errors/${ARG_FIXTURE}")
-  set(binary_dir "${CMAKE_CURRENT_BINARY_DIR}/errors/${ARG_FIXTURE}")
+  set(source_dir "${CMAKE_CURRENT_SOURCE_DIR}/fixtures/${ARG_FIXTURE}")
+  set(binary_dir "${CMAKE_CURRENT_BINARY_DIR}/${ARG_FIXTURE}")
 
+  string(REPLACE "errors/" "" fixture_name "${ARG_FIXTURE}")
   add_test(NAME ${ARG_NAME}
     COMMAND ${CMAKE_CTEST_COMMAND}
       --build-and-test "${source_dir}" "${binary_dir}"
       --build-generator "${CMAKE_GENERATOR}"
       --build-makeprogram "${CMAKE_MAKE_PROGRAM}"
-      --build-project "UseTYPST_${ARG_FIXTURE}_test"
+      --build-project "UseTYPST_${fixture_name}_test"
       --build-options ${USETYPST_TEST_CONFIGURE_OPTIONS}
   )
   set_tests_properties(${ARG_NAME} PROPERTIES
@@ -112,15 +113,31 @@ usetypst_add_fixture_test(
   OUTPUT doc.pdf doc.png doc.svg doc.html
 )
 
+if(TYPST_VERSION VERSION_GREATER_EQUAL 0.13)
+  usetypst_add_fixture_test(
+    NAME typst.html
+    FIXTURE html
+    TARGET doc
+    OUTPUT doc.html
+  )
+else()
+  usetypst_add_failing_fixture_test(
+    NAME typst.error.html
+    FIXTURE html
+    EXPECT_ERROR
+    "output format html is only supported for typst version 0.13.0 upwards."
+  )
+endif()
+
 usetypst_add_failing_fixture_test(
   NAME typst.error.missing_file
-  FIXTURE missing-file
+  FIXTURE errors/missing-file
   EXPECT_ERROR "does-not-exist\\.typ does not exist."
 )
 
 usetypst_add_failing_fixture_test(
   NAME typst.error.missing_typst
-  FIXTURE missing-typst
+  FIXTURE errors/missing-typst
   EXPECT_ERROR "Could not find Typst executable."
 )
 
@@ -132,20 +149,20 @@ foreach(fixture IN LISTS invalid_targets)
   string(MAKE_C_IDENTIFIER "${fixture}" name)
   usetypst_add_failing_fixture_test(
     NAME typst.error.${name}
-    FIXTURE ${fixture}
+    FIXTURE errors/${fixture}
     EXPECT_ERROR "TARGET must be a valid CMake target name."
   )
 endforeach()
 
 usetypst_add_failing_fixture_test(
   NAME typst.error.duplicate_target
-  FIXTURE duplicate-target
+  FIXTURE errors/duplicate-target
   EXPECT_ERROR "target 'doc' already exists."
 )
 
 usetypst_add_failing_fixture_test(
   NAME typst.error.invalid_output_format
-  FIXTURE invalid-output-format
+  FIXTURE errors/invalid-output-format
   EXPECT_ERROR "DEFAULT_FORMATS must consist of values 'html', 'pdf'"
 )
 
