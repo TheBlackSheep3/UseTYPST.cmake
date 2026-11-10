@@ -12,9 +12,11 @@
 #                    [DEFAULT_FORMATS <format>...]
 #                    [TYPST_ROOT <root_directory>]
 #                    [PAGES <pages>]
+#                    [PAGES_TEMPLATE <filename_template>]
 #                    [KEY_VALUE_PAIRS <key=value>...]
 #                    [DEPENDS <depend>...]
 #                    [FONT_DIRS <dir>...]
+#                    [SINGLE_FILE_OUTPUT]
 #                    [EXCLUDE_FROM_ALL])
 #
 #       Adds a target for each output format that compiles <typst_file> to
@@ -32,6 +34,12 @@
 #       All pages are compiled, unless the PAGES argument is specified. See
 #       `typst compile --help` for more information about the `--pages` option.
 #
+#       The PAGES_TEMPLATE dictates how single page output format (PNG and SVG)
+#       filenames are constructed. If nothing is provided the used template is
+#       `<target_name>-{p}` and the resulting files will be of the form
+#       `<target_name>-{p}.<output_format>` . See `typst compile --help` for
+#       more information about output format filename templates.
+#
 #       Key value pairs can be provided through the KEY_VALUE_PAIRS argument and
 #       are visible in Typst through `sys.inputs`.
 #
@@ -41,7 +49,11 @@
 #       Additional font directories which are searched recursively for fonts are
 #       specified through the FONT_DIRS argument.
 #
-#       Unless the EXCLUDE_FROM_ALL opion is given, the default target is added
+#       The option SINGLE_FILE_OUTPUT enforces the output of one file per output
+#       format. For PDF and HTML this changes nothing. For PNG and SVG only the
+#       first page is compiled and the argument PAGES_TEMPLATE is ignored.
+#
+#       Unless the EXCLUDE_FROM_ALL option is given, the default target is added
 #       to the ALL target and built by default.
 #
 # The following variable can be set to customize the behaviour of
@@ -198,8 +210,8 @@ function(ADD_TYPST_DOCUMENT arg_TYPST_FILE)
   endif()
 
   # Parse optional arguments
-  set(options EXCLUDE_FROM_ALL)
-  set(oneValueArgs TARGET PAGES TYPST_ROOT)
+  set(options EXCLUDE_FROM_ALL SINGLE_FILE_OUTPUT)
+  set(oneValueArgs TARGET PAGES PAGES_TEMPLATE TYPST_ROOT)
   set(multiValueArgs KEY_VALUE_PAIRS DEPENDS FONT_DIRS DEFAULT_FORMATS)
   cmake_parse_arguments(PARSE_ARGV 1 arg
     "${options}" "${oneValueArgs}" "${multiValueArgs}"
@@ -231,6 +243,25 @@ function(ADD_TYPST_DOCUMENT arg_TYPST_FILE)
 
   if (DEFINED arg_PAGES)
     string(PREPEND arg_PAGES "--pages=")
+    if(arg_SINGLE_FILE_OUTPUT)
+      message(
+        WARNING
+        "${CMAKE_CURRENT_FUNCTION}: SINGLE_FILE_OUTPUT overrides the PAGES"
+        " parameter for output formats PNG and SVG to '1'."
+      )
+    endif()
+  endif()
+
+  if(NOT arg_SINGLE_FILE_OUTPUT AND NOT DEFINED arg_PAGES_TEMPLATE)
+    set(arg_PAGES_TEMPLATE "${arg_TARGET}-{p}")
+  endif()
+
+  if(arg_SINGLE_FILE_OUTPUT AND arg_PAGES_TEMPLATE)
+    message(
+      WARNING
+      "${CMAKE_CURRENT_FUNCTION}: PAGES_TEMPLATE and"
+      " SINGLE_FILE_OUTPUT exclude each other. PAGES_TEMPLATE will be ignored."
+    )
   endif()
 
   if (DEFINED arg_KEY_VALUE_PAIRS)
@@ -300,13 +331,24 @@ function(ADD_TYPST_DOCUMENT arg_TYPST_FILE)
   foreach(format IN LISTS __TYPST_ALLOWED_FORMATS)
     set(output "${output_dir}/${arg_TARGET}.${format}")
     set(dep_file "${output}.d")
+    unset(pages_string)
+    if(${format} STREQUAL svg OR ${format} STREQUAL png)
+      if(NOT arg_SINGLE_FILE_OUTPUT)
+        set(output "${output_dir}/${arg_PAGES_TEMPLATE}.${format}")
+      else()
+        set(pages_string "--pages=1")
+      endif()
+    endif()
+    if(NOT DEFINED pages_string AND DEFINED arg_PAGES)
+      set(pages_string "${arg_PAGES}")
+    endif()
     cmake_path(NATIVE_PATH output output)
     cmake_path(NATIVE_PATH dep_file dep_file)
     cmake_path(NATIVE_PATH source_path source)
     cmake_path(NATIVE_PATH arg_TYPST_ROOT root_dir)
     if(${format} STREQUAL pdf
         AND TYPST_VERSION VERSION_GREATER_EQUAL 0.14
-        AND arg_PAGES)
+        AND pages_string)
       set(pdf_tags_string "--no-pdf-tags")
     else()
       unset(pdf_tags_string)
@@ -320,7 +362,7 @@ function(ADD_TYPST_DOCUMENT arg_TYPST_FILE)
     add_custom_command(
       OUTPUT "${output}"
       COMMAND ${TYPST_EXECUTABLE} compile ${arg_KEY_VALUE_PAIRS}
-        --format ${format} ${arg_PAGES} ${deps_string} "${dep_file}"
+        --format ${format} ${pages_string} ${deps_string} "${dep_file}"
         --root "${root_dir}" ${pdf_tags_string} ${feature_flags} ${fonts}
         "${source}" "${output}"
       DEPENDS "${source}"

@@ -107,10 +107,27 @@ usetypst_add_fixture_test(
 )
 
 usetypst_add_fixture_test(
-  NAME typst.multiple_formats
+  NAME typst.multi_formats
   FIXTURE multi-formats
   TARGET doc
-  OUTPUT doc.pdf doc.png doc.svg doc.html
+  OUTPUT doc.pdf doc-1.png doc-1.svg
+    $<$<VERSION_GREATER_EQUAL:${TYPST_VERSION},0.13>:doc.html>
+)
+
+usetypst_add_fixture_test(
+  NAME typst.multi_pages
+  FIXTURE multi-pages
+  TARGET doc
+  OUTPUT doc.pdf doc-1-of-2.png doc-2-of-2.png doc-1-of-2.svg doc-2-of-2.svg
+    $<$<VERSION_GREATER_EQUAL:${TYPST_VERSION},0.13>:doc.html>
+)
+
+usetypst_add_fixture_test(
+  NAME typst.enforce_single_file
+  FIXTURE enforce-single-file
+  TARGET doc
+  OUTPUT doc.pdf doc.png doc.svg
+    $<$<VERSION_GREATER_EQUAL:${TYPST_VERSION},0.13>:doc.html>
 )
 
 if(TYPST_VERSION VERSION_GREATER_EQUAL 0.13)
